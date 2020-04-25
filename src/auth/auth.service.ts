@@ -5,6 +5,7 @@ import { User } from '../entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Session } from '../entities/session.entity';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -19,7 +20,7 @@ export class AuthService {
       // If user is not found it will reject the promise
       // and go to catch step
       const user = await this.userService.findByEmail(userEmail);
-      if (user && user.password === userPassword) {
+      if (user && (await bcrypt.compare(userPassword, user.password))) {
         const { id, email } = user;
         return { id, email };
       } else {
@@ -54,20 +55,20 @@ export class AuthService {
     }
   }
 
-  async login(user: User) {
+  async login(user: User, ip: string, userAgent: string) {
     const payload = { email: user.email, sub: user.id };
     const jwt = this.jwtService.sign(payload);
 
     try {
-      await this.sessionRepository.save({ jwt, user });
+      await this.sessionRepository.save({ jwt, user, ip, userAgent });
     } catch (err) {
       Logger.error(err);
       throw new UnauthorizedException();
     }
-    return { access_token: jwt };
+    return { accessToken: jwt };
   }
 
-  async logout(user: User, jwt: string) {
+  async logout(jwt: string) {
     return this.sessionRepository.delete({ jwt });
   }
 

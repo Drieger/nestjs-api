@@ -12,16 +12,14 @@ import { User } from '../entities/user.entity';
   model: {
     type: User,
   },
+  routes: {
+    exclude: ['createManyBase', 'replaceOneBase'],
+  },
   query: {
-    exclude: ['password', 'createdAt', 'updatedAt'],
+    exclude: ['password', 'createdAt'],
   },
 })
 @Controller('users')
 export class UserController implements CrudController<User> {
   constructor(public service: UserService) {}
-
-  @Get('/me')
-  async whoAmI(@Request() req) {
-    return this.service.findOne(req.user.id);
-  }
 }

@@ -12,8 +12,8 @@ async function bootstrap() {
   // Only create swagger documentation if we are running in a development env
   if (process.env.NODE_ENV !== 'production') {
     const options = new DocumentBuilder()
-      .setTitle('TODO API')
-      .setDescription('The TODO API documentation')
+      .setTitle('API')
+      .setDescription('The API documentation')
       .setVersion('1.0')
       .build();
     const document = SwaggerModule.createDocument(app, options);

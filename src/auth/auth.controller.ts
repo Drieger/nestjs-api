@@ -1,41 +1,59 @@
 import {
   Controller,
   Request,
+  Res,
   Post,
   UseGuards,
-  Get,
-  Logger,
-  HttpCode,
+  Headers,
+  HttpStatus,
 } from '@nestjs/common';
 import { LocalAuthGuard } from './guards/localAuth.guard';
-import { ApiTags, ApiBasicAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBasicAuth,
+  ApiBody,
+  ApiResponse,
+  ApiOkResponse,
+  ApiUnauthorizedResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwtAuth.guard';
 import { ExtractJwt } from 'passport-jwt';
+import { LoginDTO } from './dtos/Login.dto';
+import { LoginResponseDTO } from './dtos/LoginResponse.dto';
+import { UnauthorizedResponseDTO } from './dtos/UnauthorizedResponse.dto';
+import { LogoutResponseDTO } from './dtos/LogoutResponse.dto';
+import { Response } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private service: AuthService) {}
 
+  // Api documentation
+  @ApiBasicAuth()
+  @ApiBody({ type: LoginDTO })
+  @ApiOkResponse({ type: LoginResponseDTO })
+  @ApiUnauthorizedResponse({ type: UnauthorizedResponseDTO })
+  // Authorization
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Request() req) {
-    return this.service.login(req.user);
+  async login(@Request() req, @Headers() headers) {
+    return this.service.login(req.user, req.ip, headers['user-agent']);
   }
 
+  // Api documentation
+  @ApiBearerAuth()
+  @ApiOkResponse({ type: LogoutResponseDTO })
+  // Authorization
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  @HttpCode(200)
-  async logout(@Request() req) {
+  async logout(@Request() req, @Res() res: Response) {
     const jwt = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-    await this.service.logout(req.user, jwt);
-    return;
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get('sessions')
-  async sessions(@Request() req) {
-    return this.service.sessions(req.user);
+    await this.service.logout(jwt);
+    return res
+      .status(HttpStatus.OK)
+      .json({ statusCode: HttpStatus.OK, success: true });
   }
 }

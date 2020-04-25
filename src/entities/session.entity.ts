@@ -18,6 +18,12 @@ export class Session {
   @Column({ unique: true })
   jwt: string;
 
+  @Column({ nullable: true })
+  ip: string;
+
+  @Column({ nullable: true })
+  userAgent: string;
+
   @CreateDateColumn()
   createdAt: string;
 }

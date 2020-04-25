@@ -4,42 +4,48 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
+  BeforeInsert,
 } from 'typeorm';
-import { ApiProperty } from '@nestjs/swagger';
-import { Todo } from './todo.entity';
+import { IsOptional, IsNotEmpty, IsString, IsEmail } from 'class-validator';
+import { CrudValidationGroups } from '@nestjsx/crud';
+import * as bcrypt from 'bcrypt';
+
+const { CREATE, UPDATE } = CrudValidationGroups;
 
 @Entity('users')
 export class User {
-  @ApiProperty()
   @PrimaryGeneratedColumn()
   id?: number;
 
-  @ApiProperty()
-  @Column()
-  name: string;
+  @IsNotEmpty({ groups: [CREATE] })
+  @IsOptional({ groups: [UPDATE] })
+  @IsString({ always: true })
+  @Column({ nullable: false })
+  name?: string;
 
-  @ApiProperty()
-  @Column({ unique: true })
-  email: string;
+  @IsOptional({ groups: [UPDATE] })
+  @IsNotEmpty({ groups: [CREATE] })
+  @IsEmail({}, { always: true })
+  @Column({ nullable: false, unique: true })
+  email?: string;
 
-  @ApiProperty()
-  @Column()
-  password?: string;
-
-  @ApiProperty()
   @Column({ default: false })
   isAdmin?: boolean;
-
-  @OneToMany(
-    type => Todo,
-    todo => todo.createdBy,
-  )
-  todos: Todo[];
 
   @CreateDateColumn({ select: false })
   createdAt?: string;
 
   @UpdateDateColumn({ select: false })
   updatedAt?: string;
+
+  @Column({ nullable: false })
+  password?: string;
+
+  @BeforeInsert()
+  async hashPassword() {
+    this.password = await bcrypt.hash(
+      this.password,
+      process.env.SALT_ROUNDS || 10,
+    );
+  }
 }
