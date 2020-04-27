@@ -6,13 +6,12 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Session } from '../entities/session.entity';
+import { SessionsModule } from '../sessions/sessions.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Session]),
     UserModule,
+    SessionsModule,
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,

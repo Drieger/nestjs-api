@@ -12,7 +12,6 @@ import {
   ApiTags,
   ApiBasicAuth,
   ApiBody,
-  ApiResponse,
   ApiOkResponse,
   ApiUnauthorizedResponse,
   ApiBearerAuth,

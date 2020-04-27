@@ -3,14 +3,13 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import { User } from '../entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Session } from '../entities/session.entity';
-import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { SessionsService } from '../sessions/sessions.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(Session) private sessionRepository: Repository<Session>,
+    private sessionsService: SessionsService,
     private userService: UserService,
     private jwtService: JwtService,
   ) {}
@@ -21,8 +20,8 @@ export class AuthService {
       // and go to catch step
       const user = await this.userService.findByEmail(userEmail);
       if (user && (await bcrypt.compare(userPassword, user.password))) {
-        const { id, email } = user;
-        return { id, email };
+        const { id, email, isAdmin } = user;
+        return { id, email, isAdmin };
       } else {
         return null;
       }
@@ -35,17 +34,17 @@ export class AuthService {
   // Checks if current JWT token is associated with an user
   async validateJwtUser(jwt: string): Promise<User> {
     try {
-      const session = await this.sessionRepository.findOneOrFail(
+      const session = await this.sessionsService.findOneOrFail(
         { jwt },
-        { relations: ['user'] },
+        { select: ['jwt', 'userId'] },
       );
 
       // Checks if token is still valid
       // Checking it here allow us to remove this token from our session database
       this.jwtService.verify(jwt, { ignoreExpiration: false });
 
-      const user = await this.userService.findOne(session.user, {
-        select: ['id', 'email'],
+      const user = await this.userService.findOne(session.userId, {
+        select: ['id', 'email', 'isAdmin'],
       });
 
       return user;
@@ -60,7 +59,7 @@ export class AuthService {
     const jwt = this.jwtService.sign(payload);
 
     try {
-      await this.sessionRepository.save({ jwt, user, ip, userAgent });
+      await this.sessionsService.save({ jwt, user, ip, userAgent });
     } catch (err) {
       Logger.error(err);
       throw new UnauthorizedException();
@@ -69,10 +68,6 @@ export class AuthService {
   }
 
   async logout(jwt: string) {
-    return this.sessionRepository.delete({ jwt });
-  }
-
-  async sessions(user: User) {
-    return this.sessionRepository.find({ user });
+    return this.sessionsService.delete({ jwt });
   }
 }
